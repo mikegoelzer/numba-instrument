@@ -1,15 +1,10 @@
 from __future__ import annotations
 
-import ast
 import importlib.abc
 import importlib.machinery
 import sys
 import types
 from collections.abc import Callable, Iterable, Sequence
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from _typeshed import ReadableBuffer, StrPath
 
 SourceTransform = Callable[[str, str, str], str]
 
@@ -19,32 +14,29 @@ class InstrumentingLoader(importlib.machinery.SourceFileLoader):
         super().__init__(fullname, path)
         self._transform = transform
 
-    def source_to_code(
-        self,
-        data: ReadableBuffer | str | types.ModuleType | ast.Expression | ast.Interactive,
-        path: StrPath,
-        *,
-        _optimize: int = -1,
+    # SourceLoader.get_code always invokes source_to_code with the bytes returned
+    # by get_data() and the str path returned by get_filename(), so we narrow the
+    # base signature (StrPath | ReadableBuffer | ast.*) to what actually flows in.
+    def source_to_code(  # pyright: ignore[reportIncompatibleMethodOverride]
+        self, data: bytes, path: str, *, _optimize: int = -1
     ) -> types.CodeType:
-        if isinstance(data, str):
-            source = data
-        elif isinstance(data, (bytes, bytearray, memoryview)):
-            source = bytes(data).decode("utf-8")
-        else:
-            return super().source_to_code(data, path, _optimize=_optimize)
-        path_str = path.decode("utf-8") if isinstance(path, bytes) else str(path)
-        transformed = self._transform(source, path_str, self.name)
-        return compile(transformed, path_str, "exec", dont_inherit=True, optimize=_optimize)
+        source = data.decode("utf-8")
+        transformed = self._transform(source, path, self.name)
+        return compile(transformed, path, "exec", dont_inherit=True, optimize=_optimize)
 
-    def set_data(
-        self,
-        path: StrPath,
-        data: ReadableBuffer,
-        *,
-        _mode: int = 0o666,
+    # We never write bytecode caches, so the wide base signature is not needed.
+    def set_data(  # pyright: ignore[reportIncompatibleMethodOverride]
+        self, path: str, data: bytes, *, _mode: int = 0o666
     ) -> None:
-        # Avoid writing transformed bytecode caches.
         return None
+
+    # Bypass the .pyc cache: SourceLoader.get_code would happily reuse a stale
+    # bytecode file that predates (or doesn't reflect) our transform, so
+    # source_to_code would never run and the module would import un-instrumented.
+    def get_code(self, fullname: str) -> types.CodeType:
+        source_path = self.get_filename(fullname)
+        source_bytes = self.get_data(source_path)
+        return self.source_to_code(source_bytes, source_path)
 
 
 class InstrumentingFinder(importlib.abc.MetaPathFinder):

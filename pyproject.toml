@@ -115,7 +115,7 @@ total_average = true
 
 [tool.pytest]
 minversion = "9.0"
-addopts = ["-ra", "-q", "--strict-markers", "--strict-config"]
+addopts = ["-rfeXs", "-q", "--strict-markers", "--strict-config"]
 testpaths = ["tests"]
 pythonpath = ["src"]
 markers = [
