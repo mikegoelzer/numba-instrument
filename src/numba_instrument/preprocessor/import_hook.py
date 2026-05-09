@@ -1,10 +1,15 @@
 from __future__ import annotations
 
+import ast
 import importlib.abc
 import importlib.machinery
 import sys
-from collections.abc import Callable, Iterable
+import types
+from collections.abc import Callable, Iterable, Sequence
+from typing import TYPE_CHECKING
 
+if TYPE_CHECKING:
+    from _typeshed import ReadableBuffer, StrPath
 
 SourceTransform = Callable[[str, str, str], str]
 
@@ -14,12 +19,30 @@ class InstrumentingLoader(importlib.machinery.SourceFileLoader):
         super().__init__(fullname, path)
         self._transform = transform
 
-    def source_to_code(self, data: bytes | str, path: str, *, _optimize: int = -1):
-        source = data.decode("utf-8") if isinstance(data, bytes) else data
-        transformed = self._transform(source, path, self.name)
-        return compile(transformed, path, "exec", dont_inherit=True, optimize=_optimize)
+    def source_to_code(
+        self,
+        data: ReadableBuffer | str | types.ModuleType | ast.Expression | ast.Interactive,
+        path: StrPath,
+        *,
+        _optimize: int = -1,
+    ) -> types.CodeType:
+        if isinstance(data, str):
+            source = data
+        elif isinstance(data, (bytes, bytearray, memoryview)):
+            source = bytes(data).decode("utf-8")
+        else:
+            return super().source_to_code(data, path, _optimize=_optimize)
+        path_str = path.decode("utf-8") if isinstance(path, bytes) else str(path)
+        transformed = self._transform(source, path_str, self.name)
+        return compile(transformed, path_str, "exec", dont_inherit=True, optimize=_optimize)
 
-    def set_data(self, path: str, data: bytes) -> None:
+    def set_data(
+        self,
+        path: StrPath,
+        data: ReadableBuffer,
+        *,
+        _mode: int = 0o666,
+    ) -> None:
         # Avoid writing transformed bytecode caches.
         return None
 
@@ -29,7 +52,12 @@ class InstrumentingFinder(importlib.abc.MetaPathFinder):
         self.target_modules = set(target_modules)
         self.transform = transform
 
-    def find_spec(self, fullname: str, path=None, target=None):
+    def find_spec(
+        self,
+        fullname: str,
+        path: Sequence[str] | None = None,
+        target: types.ModuleType | None = None,
+    ) -> importlib.machinery.ModuleSpec | None:
         if fullname not in self.target_modules:
             return None
 
