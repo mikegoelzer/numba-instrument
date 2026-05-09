@@ -7,11 +7,6 @@ Pushing a tag will kick off a new pip package:
 2.  Tag with the next version number and push the tag:
 
 ```
-git tag v0.1.0
-git push origin v0.1.0
-```
-
-```
 uv run cz bump
 git push origin main --tags
 ```
