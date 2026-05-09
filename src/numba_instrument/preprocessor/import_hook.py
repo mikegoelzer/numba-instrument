@@ -14,8 +14,8 @@ class InstrumentingLoader(importlib.machinery.SourceFileLoader):
         super().__init__(fullname, path)
         self._transform = transform
 
-    # SourceLoader.get_code always invokes source_to_code with the bytes returned
-    # by get_data() and the str path returned by get_filename(), so we narrow the
+    # Ignore note: SourceLoader.get_code always invokes source_to_code with the bytes
+    # returns from get_data() and the str path returned by get_filename(), so we narrow
     # base signature (StrPath | ReadableBuffer | ast.*) to what actually flows in.
     def source_to_code(  # pyright: ignore[reportIncompatibleMethodOverride]
         self, data: bytes, path: str, *, _optimize: int = -1
@@ -24,7 +24,7 @@ class InstrumentingLoader(importlib.machinery.SourceFileLoader):
         transformed = self._transform(source, path, self.name)
         return compile(transformed, path, "exec", dont_inherit=True, optimize=_optimize)
 
-    # We never write bytecode caches, so the wide base signature is not needed.
+    # Ignore note: we never write bytecode caches, so wide base signature not needed.
     def set_data(  # pyright: ignore[reportIncompatibleMethodOverride]
         self, path: str, data: bytes, *, _mode: int = 0o666
     ) -> None:
