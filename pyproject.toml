@@ -1,0 +1,126 @@
+[build-system]
+requires = [
+  "hatchling>=1.29",
+  "hatch-vcs>=0.5",
+]
+build-backend = "hatchling.build"
+
+[project]
+dynamic = ["version"]
+name = "numba-instrument"
+description = "Import-time source instrumentation helpers for Numba kernels."
+readme = "readme.md"
+license = "MIT"
+authors = [ 
+  {name = "Mike Goelzer", email = "mike@goelzer.net"} 
+]
+requires-python = ">=3.12"
+dependencies = [
+  "numba>=0.61.4",
+  "jinja2>=3.1.6",
+  "rich>=15.0.0",
+  "libcst>=1.8.6",
+]
+
+[project.scripts]
+numba-instrument = "numba_instrument.__main__:main"
+
+[dependency-groups]
+dev = [
+  "build>=1.3",
+  "basedpyright>=1.39.3",
+  "pytest>=9",
+  "radon>=6.0.1",
+  "ruff>=0.6",
+  "xenon>=0.9.3",
+  "pytest-agent-digest>=0.3.2",
+  "pytest-xdist>=3",
+  "commitizen>=4.15",
+]
+
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/numba_instrument"]
+artifacts = [
+  "src/numba_instrument/py.typed",
+]
+
+[tool.basedpyright]
+include = ["src", "tests"]
+exclude = [
+  "**/__pycache__",
+  ".venv",
+  ".pytest_cache",
+  ".ruff_cache",
+  ".mypy_cache",
+  "build",
+  "dist",
+]
+venvPath = "."
+venv = ".venv"
+pythonVersion = "3.12"
+typeCheckingMode = "standard"
+reportMissingImports = "error"
+reportMissingTypeStubs = "error"
+reportUnknownVariableType = "warning"
+reportUnknownMemberType = "error"
+reportUnknownParameterType = "error"
+reportUnknownArgumentType = "error"
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = [
+  "E",    # pycodestyle errors
+  "F",    # pyflakes
+  "I",    # import sorting
+  "B",    # bugbear
+  "UP",   # pyupgrade
+  "C90",  # mccabe complexity
+  "PLR",  # pylint refactor / code-shape metrics
+]
+ignore = [
+  "PLR2004",  # magic value comparisons are often too noisy
+]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 10
+
+[tool.ruff.lint.pylint]
+max-args = 6
+max-branches = 12
+max-locals = 15
+max-nested-blocks = 5
+max-returns = 6
+max-statements = 50
+
+[tool.radon]
+exclude = "tests/*,.venv/*,build/*,dist/*"
+cc_min = "A"
+show_complexity = true
+show_mi = true
+total_average = true
+
+[tool.pytest]
+minversion = "9.0"
+addopts = ["-ra", "-q", "--strict-markers", "--strict-config"]
+testpaths = ["tests"]
+pythonpath = ["src"]
+markers = [
+  "unit: marks tests as unit tests (deselect with '-m \"not unit\"')",
+  "e2e: marks tests as end-to-end integration tests (deselect with '-m \"not e2e\"')",
+]
+agent_digest_file = "reports/pytest-results.md"
+
+[tool.commitizen]
+name = "cz_conventional_commits"
+tag_format = "v$version"
+version_scheme = "pep440"
+version_provider = "scm"
+update_changelog_on_bump = true
+major_version_zero = true
