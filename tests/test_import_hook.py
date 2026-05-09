@@ -35,6 +35,10 @@ def test_finder_tracks_exact_target_modules() -> None:
             marks=pytest.mark.xfail(
                 strict=True,
                 reason=(
+                    "With do_install=False the InstrumentingFinder is never inserted "
+                    "into sys.meta_path, so sample_module loads via the default "
+                    "Python loader without our transform. INSTRUMENTED is therefore "
+                    "absent and the `is True` assertion must fail. Marked strict so "
                     "Suite breaks loudly if do_install=False ever passes (which would "
                     "indicate a hook leaking across tests or fixture contamination)."
                 ),
@@ -64,6 +68,7 @@ def test_loader_imports_local_module_and_applies_transform(do_install: bool) -> 
     captured: dict[str, str] = {}
 
     def transform(source: str, filename: str, module_name: str) -> str:
+        """Perform text-based transform on imported module source."""
         captured["filename"] = filename
         captured["module_name"] = module_name
         return source + "\nINSTRUMENTED = True\n"
