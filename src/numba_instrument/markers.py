@@ -2,8 +2,8 @@ from __future__ import annotations
 
 try:
     from numba import njit
-except Exception:  # pragma: no cover
-    njit = None  # type: ignore[assignment]
+except Exception:
+    njit = None
 
 
 if njit is not None:

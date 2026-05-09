@@ -69,6 +69,13 @@ reportUnknownMemberType = "error"
 reportUnknownParameterType = "error"
 reportUnknownArgumentType = "error"
 
+# numba ships no upstream type stubs and never will
+[[tool.basedpyright.executionEnvironments]]
+root = "src/numba_instrument"
+reportMissingTypeStubs = "none"
+reportUnknownVariableType = "none"
+reportUnknownMemberType = "none"
+
 [tool.ruff]
 target-version = "py312"
 line-length = 100
